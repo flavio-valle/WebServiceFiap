@@ -17,30 +17,82 @@ namespace WebServiceFiap.Controllers
 
         // GET /api/monitoramentoar?pageNumber=1&pageSize=10
         [HttpGet]
+        [ProducesResponseType(typeof(object), 200)]  // Sucesso
+        [ProducesResponseType(400, Type = typeof(string))]  // BadRequest
+        [ProducesResponseType(500, Type = typeof(string))]  // InternalServerError
         public async Task<IActionResult> Get([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            var (items, total) = await _service.GetAllPagedAsync(pageNumber, pageSize);
-            return Ok(new { data = items, totalCount = total });
+            if (pageNumber <= 0 || pageSize <= 0)
+            {
+                return BadRequest("Número da página e tamanho devem ser maiores que zero.");
+            }
+
+            try
+            {
+                var (items, total) = await _service.GetAllPagedAsync(pageNumber, pageSize);
+                return Ok(new { data = items, totalCount = total });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao recuperar dados: {ex.Message}");
+            }
         }
 
+        // GET /api/monitoramentoar/{id}
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(MonitoramentoAr), 200)]  // Sucesso
+        [ProducesResponseType(404, Type = typeof(string))]  // NotFound
+        [ProducesResponseType(500, Type = typeof(string))]  // InternalServerError
         public async Task<IActionResult> GetById(int id)
         {
-            var item = await _service.GetByIdAsync(id);
-            if (item == null) return NotFound("Registro não encontrado.");
-            return Ok(item);
+            try
+            {
+                var item = await _service.GetByIdAsync(id);
+                if (item == null) return NotFound("Registro não encontrado.");
+                return Ok(item);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao recuperar o registro: {ex.Message}");
+            }
         }
 
+        // POST /api/monitoramentoar
         [HttpPost]
+        [ProducesResponseType(typeof(MonitoramentoAr), 201)]  // Created
+        [ProducesResponseType(400, Type = typeof(string))]  // BadRequest
+        [ProducesResponseType(500, Type = typeof(string))]  // InternalServerError
         public async Task<IActionResult> Post([FromBody] MonitoramentoAr body)
         {
-            await _service.AddAsync(body);
-            return CreatedAtAction(nameof(GetById), new { id = body.ID_MONITORAMENTO_AR }, body);
+            if (body == null)
+            {
+                return BadRequest("Dados inválidos.");
+            }
+
+            try
+            {
+                await _service.AddAsync(body);
+                return CreatedAtAction(nameof(GetById), new { id = body.ID_MONITORAMENTO_AR }, body);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao criar o registro: {ex.Message}");
+            }
         }
 
+        // PUT /api/monitoramentoar/{id}
         [HttpPut("{id}")]
+        [ProducesResponseType(204)]  // NoContent
+        [ProducesResponseType(400, Type = typeof(string))]  // BadRequest
+        [ProducesResponseType(404, Type = typeof(string))]  // NotFound
+        [ProducesResponseType(500, Type = typeof(string))]  // InternalServerError
         public async Task<IActionResult> Put(int id, [FromBody] MonitoramentoAr body)
         {
+            if (body == null || id <= 0)
+            {
+                return BadRequest("Dados inválidos.");
+            }
+
             try
             {
                 await _service.UpdateAsync(id, body);
@@ -50,13 +102,39 @@ namespace WebServiceFiap.Controllers
             {
                 return NotFound("Registro não encontrado.");
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao atualizar o registro: {ex.Message}");
+            }
         }
 
+        // DELETE /api/monitoramentoar/{id}
         [HttpDelete("{id}")]
+        [ProducesResponseType(204)]  // NoContent
+        [ProducesResponseType(404, Type = typeof(string))]  // NotFound
+        [ProducesResponseType(500, Type = typeof(string))]  // InternalServerError
         public async Task<IActionResult> Delete(int id)
         {
-            await _service.DeleteAsync(id);
-            return NoContent();
+            if (id <= 0)
+            {
+                return BadRequest("ID inválido.");
+            }
+
+            try
+            {
+                var item = await _service.GetByIdAsync(id);
+                if (item == null)
+                {
+                    return NotFound("Registro não encontrado.");
+                }
+
+                await _service.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao deletar o registro: {ex.Message}");
+            }
         }
     }
 }
