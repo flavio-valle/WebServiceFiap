@@ -1,0 +1,6 @@
+@WebServiceFiap_HostAddress = http://localhost:5294
+
+GET {{WebServiceFiap_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
